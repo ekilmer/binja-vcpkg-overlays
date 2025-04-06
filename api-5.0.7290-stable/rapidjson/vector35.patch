@@ -1,0 +1,240 @@
+diff --git a/include/rapidjson/allocators.h b/include/rapidjson/allocators.h
+index 98affe03..663c62de 100644
+--- a/include/rapidjson/allocators.h
++++ b/include/rapidjson/allocators.h
+@@ -59,25 +59,47 @@ concept Allocator {
+ /*! This class is just wrapper for standard C library memory routines.
+     \note implements Allocator concept
+ */
++#ifdef BINARYNINJACORE_LIBRARY
+ class CrtAllocator {
+ public:
+     static const bool kNeedFree = true;
+     void* Malloc(size_t size) { 
+         if (size) //  behavior of malloc(0) is implementation defined.
+-            return std::malloc(size);
++            return BinaryNinjaCore::bn_malloc<CrtAllocator>(size);
+         else
+             return NULL; // standardize to returning NULL.
+     }
+     void* Realloc(void* originalPtr, size_t originalSize, size_t newSize) {
+         (void)originalSize;
+         if (newSize == 0) {
+-            std::free(originalPtr);
++            BinaryNinjaCore::bn_free(originalPtr);
+             return NULL;
+         }
+-        return std::realloc(originalPtr, newSize);
++        return BinaryNinjaCore::bn_realloc<CrtAllocator>(originalPtr, newSize);
+     }
+-    static void Free(void *ptr) { std::free(ptr); }
++    static void Free(void* ptr) { BinaryNinjaCore::bn_free(ptr); }
+ };
++#else
++class CrtAllocator {
++public:
++    static const bool kNeedFree = true;
++    void* Malloc(size_t size) {
++        if (size) //  behavior of malloc(0) is implementation defined.
++            return malloc(size);
++        else
++            return NULL; // standardize to returning NULL.
++    }
++    void* Realloc(void* originalPtr, size_t originalSize, size_t newSize) {
++        (void)originalSize;
++        if (newSize == 0) {
++            free(originalPtr);
++            return NULL;
++        }
++        return realloc(originalPtr, newSize);
++    }
++    static void Free(void* ptr) { free(ptr); }
++};
++#endif
+ 
+ ///////////////////////////////////////////////////////////////////////////////
+ // MemoryPoolAllocator
+diff --git a/include/rapidjson/document.h b/include/rapidjson/document.h
+index e3e20dfb..619029a2 100644
+--- a/include/rapidjson/document.h
++++ b/include/rapidjson/document.h
+@@ -44,6 +44,16 @@ RAPIDJSON_DIAG_OFF(terminate) // ignore throwing RAPIDJSON_ASSERT in RAPIDJSON_N
+ #endif
+ #endif // __GNUC__
+ 
++#ifdef GetObject
++// see https://github.com/Tencent/rapidjson/issues/1448
++// a former included windows.h might have defined a macro called GetObject, which affects
++// GetObject defined here. This ensures the macro does not get applied
++#pragma push_macro("GetObject")
++#define RAPIDJSON_WINDOWS_GETOBJECT_WORKAROUND_APPLIED
++#undef GetObject
++#endif
++
++
+ #ifndef RAPIDJSON_NOMEMBERITERATORCLASS
+ #include <iterator> // std::iterator, std::random_access_iterator_tag
+ #endif
+@@ -99,17 +109,20 @@ struct GenericMember {
+  */
+ template <bool Const, typename Encoding, typename Allocator>
+ class GenericMemberIterator
+-    : public std::iterator<std::random_access_iterator_tag
+-        , typename internal::MaybeAddConst<Const,GenericMember<Encoding,Allocator> >::Type> {
+-
++{
+     friend class GenericValue<Encoding,Allocator>;
+     template <bool, typename, typename> friend class GenericMemberIterator;
+ 
+     typedef GenericMember<Encoding,Allocator> PlainType;
+     typedef typename internal::MaybeAddConst<Const,PlainType>::Type ValueType;
+-    typedef std::iterator<std::random_access_iterator_tag,ValueType> BaseType;
+ 
+ public:
++    using iterator_category = std::random_access_iterator_tag;
++    using value_type = typename internal::MaybeAddConst<Const, GenericMember<Encoding, Allocator>>::Type;
++    using difference_type = ptrdiff_t;
++    using pointer = value_type*;
++    using reference = value_type&;
++
+     //! Iterator type itself
+     typedef GenericMemberIterator Iterator;
+     //! Constant iterator type
+@@ -118,11 +131,11 @@ class GenericMemberIterator
+     typedef GenericMemberIterator<false,Encoding,Allocator> NonConstIterator;
+ 
+     //! Pointer to (const) GenericMember
+-    typedef typename BaseType::pointer         Pointer;
++    typedef pointer Pointer;
+     //! Reference to (const) GenericMember
+-    typedef typename BaseType::reference       Reference;
++    typedef reference Reference;
+     //! Signed integer type (e.g. \c ptrdiff_t)
+-    typedef typename BaseType::difference_type DifferenceType;
++    typedef difference_type DifferenceType;
+ 
+     //! Default constructor (singular value)
+     /*! Creates an iterator pointing to no element.
+@@ -316,8 +329,6 @@ struct GenericStringRef {
+ 
+     GenericStringRef(const GenericStringRef& rhs) : s(rhs.s), length(rhs.length) {}
+ 
+-    GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }
+-
+     //! implicit conversion to plain CharType pointer
+     operator const Ch *() const { return s; }
+ 
+@@ -328,6 +339,8 @@ struct GenericStringRef {
+     //! Disallow construction from non-const array
+     template<SizeType N>
+     GenericStringRef(CharType (&str)[N]) /* = delete */;
++    //! Copy assignment operator not permitted - immutable type
++    GenericStringRef& operator=(const GenericStringRef& rhs) /* = delete */;
+ };
+ 
+ //! Mark a character pointer as constant string
+@@ -536,7 +549,7 @@ template <bool, typename> class GenericObject;
+     \tparam Encoding    Encoding of the value. (Even non-string values need to have the same encoding in a document)
+     \tparam Allocator   Allocator type for allocating memory of object, array and string.
+ */
+-template <typename Encoding, typename Allocator = MemoryPoolAllocator<> > 
++template <typename Encoding, typename Allocator = CrtAllocator >
+ class GenericValue {
+ public:
+     //! Name-value pair in an object.
+@@ -1134,6 +1147,15 @@ class GenericValue {
+         return FindMember(n);
+     }
+ 
++#ifdef BINARYNINJACORE_LIBRARY
++    MemberIterator FindMember(const BinaryNinjaCore::string& name) {
++#else
++    MemberIterator FindMember(const std::string& name) {
++#endif
++        GenericValue n(StringRef(name.data(), name.size()));
++        return FindMember(n);
++    }
++
+     ConstMemberIterator FindMember(const Ch* name) const { return const_cast<GenericValue&>(*this).FindMember(name); }
+ 
+     //! Find member by name.
+@@ -1206,6 +1228,15 @@ class GenericValue {
+         return *this;
+     }
+ 
++#ifdef BINARYNINJACORE_LIBRARY
++    GenericValue& AddMember(GenericValue& name, BinaryNinjaCore::string& value, Allocator& allocator) {
++#else
++    GenericValue& AddMember(GenericValue& name, std::string& value, Allocator& allocator) {
++#endif
++        GenericValue v(value.data(), allocator);
++        return AddMember(name, v, allocator);
++    }
++
+     //! Add a constant string value as member (name-value pair) to the object.
+     /*! \param name A string value as name of member.
+         \param value constant string reference as value of member.
+@@ -1456,7 +1487,9 @@ class GenericValue {
+     }
+ 
+     Object GetObject() { RAPIDJSON_ASSERT(IsObject()); return Object(*this); }
++    Object GetObj() { RAPIDJSON_ASSERT(IsObject()); return Object(*this); }
+     ConstObject GetObject() const { RAPIDJSON_ASSERT(IsObject()); return ConstObject(*this); }
++    ConstObject GetObj() const { RAPIDJSON_ASSERT(IsObject()); return ConstObject(*this); }
+ 
+     //@}
+ 
+@@ -1546,6 +1579,15 @@ class GenericValue {
+         return *this;
+     }
+ 
++#ifdef BINARYNINJACORE_LIBRARY
++    GenericValue& PushBack(BinaryNinjaCore::string value, Allocator& allocator) {
++#else
++    GenericValue& PushBack(std::string value, Allocator& allocator) {
++#endif
++        GenericValue v(value.c_str(), allocator);
++        return PushBack(v, allocator);
++    }
++
+ #if RAPIDJSON_HAS_CXX11_RVALUE_REFS
+     GenericValue& PushBack(GenericValue&& value, Allocator& allocator) {
+         return PushBack(value, allocator);
+@@ -2020,7 +2062,7 @@ typedef GenericValue<UTF8<> > Value;
+     \tparam StackAllocator Allocator for allocating memory for stack during parsing.
+     \warning Although GenericDocument inherits from GenericValue, the API does \b not provide any virtual functions, especially no virtual destructor.  To avoid memory leaks, do not \c delete a GenericDocument object via a pointer to a GenericValue.
+ */
+-template <typename Encoding, typename Allocator = MemoryPoolAllocator<>, typename StackAllocator = CrtAllocator>
++template <typename Encoding, typename Allocator = CrtAllocator, typename StackAllocator = CrtAllocator>
+ class GenericDocument : public GenericValue<Encoding, Allocator> {
+ public:
+     typedef typename Encoding::Ch Ch;                       //!< Character type derived from Encoding.
+@@ -2572,4 +2614,9 @@ class GenericObject {
+ RAPIDJSON_NAMESPACE_END
+ RAPIDJSON_DIAG_POP
+ 
++#ifdef RAPIDJSON_WINDOWS_GETOBJECT_WORKAROUND_APPLIED
++#pragma pop_macro("GetObject")
++#undef RAPIDJSON_WINDOWS_GETOBJECT_WORKAROUND_APPLIED
++#endif
++
+ #endif // RAPIDJSON_DOCUMENT_H_
+diff --git a/include/rapidjson/fwd.h b/include/rapidjson/fwd.h
+index e8104e84..74f80de7 100644
+--- a/include/rapidjson/fwd.h
++++ b/include/rapidjson/fwd.h
+@@ -113,12 +113,12 @@ struct GenericStringRef;
+ template <typename Encoding, typename Allocator> 
+ class GenericValue;
+ 
+-typedef GenericValue<UTF8<char>, MemoryPoolAllocator<CrtAllocator> > Value;
++typedef GenericValue<UTF8<char>, CrtAllocator > Value;
+ 
+ template <typename Encoding, typename Allocator, typename StackAllocator>
+ class GenericDocument;
+ 
+-typedef GenericDocument<UTF8<char>, MemoryPoolAllocator<CrtAllocator>, CrtAllocator> Document;
++typedef GenericDocument<UTF8<char>, CrtAllocator, CrtAllocator> Document;
+ 
+ // pointer.h
+ 

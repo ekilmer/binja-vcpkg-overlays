@@ -1,0 +1,29 @@
+{
+    "name": "binaryninja-api",
+    "version-semver": "100.103.3+5.0.7290-stable",
+    "description": "Binary Ninja API for reverse engineering",
+    "homepage": "https://github.com/Vecto35/binaryninja-api",
+    "license": "MIT",
+    "dependencies": [
+        {
+            "name": "vcpkg-cmake",
+            "host": true
+        },
+        {
+            "name": "vcpkg-cmake-config",
+            "host": true
+        },
+        "fmt",
+        "nlohmann-json",
+        "rapidjson"
+    ],
+    "features": {
+        "ui": {
+            "description": "EXPERIMENTAL NOT SUPPORTED: Build with UI dependencies",
+            "dependencies": [
+                "qtbase"
+            ]
+        }
+    },
+    "default-features": []
+} 
