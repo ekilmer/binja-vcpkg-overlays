@@ -1,6 +1,6 @@
 {
     "name": "binaryninja-api",
-    "version-semver": "100.105.9999",
+    "version-semver": "100.105.33",
     "description": "Binary Ninja API for reverse engineering",
     "homepage": "https://github.com/Vector35/binaryninja-api",
     "license": "MIT",
