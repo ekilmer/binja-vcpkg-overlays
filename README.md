@@ -32,7 +32,7 @@ This is a pinned version of the Binary Ninja API, as was tagged for an official 
 
 | Release         | Minimum Core ABI | Current Core ABI | # Commits | Version String            |
 |-----------------|------------------|------------------|-----------|---------------------------|
-| dev             | 100*             | 104*             | 9999      | 100.104.9999*             |
+| dev             | 100*             | 105*             | 9999      | 100.105.9999*             |
 | 5.0.7920-stable | 100              | 103              | 3         | 100.103.3+5.0.7290-stable |
 |                 |                  |                  |           |                           |
 
