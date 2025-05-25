@@ -25,16 +25,17 @@ If there is an issue, please report or submit a pull request.
 This is a pinned version of the Binary Ninja API, as was tagged for an official release.
 
 ```text
---overlay-ports=[...]/api-5.0.7290-stable
+--overlay-ports=[...]/api-5.0.7486-stable
 ```
 
 ### ABI Version and Release Mapping
 
-| Release         | Minimum Core ABI | Current Core ABI | # Commits | Version String            |
-|-----------------|------------------|------------------|-----------|---------------------------|
-| dev             | 100              | 105              | 33        | 100.105.33                |
-| 5.0.7920-stable | 100              | 103              | 3         | 100.103.3+5.0.7290-stable |
-|                 |                  |                  |           |                           |
+| Release         | Minimum Core ABI | Current Core ABI | # Commits | Version String             |
+|-----------------|------------------|------------------|-----------|----------------------------|
+| dev             | 100              | 105              | 33        | 100.105.33                 |
+| 5.0.7486-stable | 100              | 103              | 28        | 100.103.28+5.0.7486-stable |
+| 5.0.7290-stable | 100              | 103              | 3         | 100.103.3+5.0.7290-stable  |
+|                 |                  |                  |           |                            |
 
 ## Purpose
 
@@ -90,10 +91,20 @@ Below is a summary of API dependency versions.
   - Qt v6.8.2 (not packaged in this repo)
     - With [custom patches](https://github.com/Vector35/qt-build/tree/11d911af3178fcf7df5810e01eee572fb3174d72)
 
+- 5.0.7486-stable
+  - fmt v11.0.2
+  - rapidjson v1.1.0
+    - With [custom patches](./api-5.0.7486-stable/rapidjson/vector35.patch)
+  - nlohmann-json v3.11.3
+  - jsoncpp v1.8.4 (vendored in API repo)
+    - Uses [custom patches](https://github.com/Vector35/binaryninja-api/tree/dev/json) with reference to Binary Ninja API headers
+  - Qt 6.8.2 (not packaged in this repo)
+    - With [custom patches](https://github.com/Vector35/qt-build/tree/11d911af3178fcf7df5810e01eee572fb3174d72)
+
 - 5.0.7290
   - fmt v11.0.2
   - rapidjson v1.1.0
-    - With [custom patches](./api-5.0/rapidjson/vector35.patch)
+    - With [custom patches](./api-5.0.7290-stable/rapidjson/vector35.patch)
   - nlohmann-json v3.11.3
   - jsoncpp v1.8.4 (vendored in API repo)
     - Uses [custom patches](https://github.com/Vector35/binaryninja-api/tree/dev/json) with reference to Binary Ninja API headers
