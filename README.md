@@ -2,13 +2,13 @@
 
 This repository holds [vcpkg](https://github.com/microsoft/vcpkg) overlays related to packaging [Binary Ninja's C++ API](https://github.com/Vector35/binaryninja-api).
 
-This repository is experimental for testing an unofficial [CMake refactor](https://github.com/ekilmer/binaryninja-api/tree/cmake-refactor).
+This repository is experimental for testing an unofficial and experimental [CMake refactor](https://github.com/ekilmer/binaryninja-api/tree/cmake-refactor).
 
 **NOTE:** Binary Ninja UI API support does not exist yet. It is recommended to follow [these directions](https://docs.binary.ninja/dev/plugins.html#ui-plugins_1) and build against Vector 35's Qt version. You can also download pre-built Qt from [Vector35/qt-artifacts](https://github.com/Vector35/qt-artifacts/releases) repository releases.
 
 ## Usage
 
-Clone this repo wherever you want and tell vcpkg to use the appropriate directory(s) as overlays.
+Clone this repo wherever you want and tell vcpkg to use the appropriate directory(s) for [overlay ports](https://learn.microsoft.com/en-us/vcpkg/concepts/overlay-ports).
 
 ### Latest Development Version of Binary Ninja
 
